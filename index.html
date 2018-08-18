@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <link type="text/css" rel="stylesheet" href="styles.css">
+  <title>Document</title>
+</head>
+<body>
+  <div ondblclick="return false" onselectstart="return false" onmousedown="return false" id="container">
+    <div id='image-container'>
+      <div class="resize" id="resize-top-left"></div>
+      <div class="resize" id="resize-top-right"></div>
+      <div class="resize" id="resize-bottom-left"></div>
+      <div class="resize" id="resize-bottom-right"></div>
+    </div>
+  </div>
+  <script>
+    const INITIAL_WIDTH = 200;
+    const MINIMUM_WIDTH = 100;
+
+
+    let img1 = new Image();
+
+    img1.src = 'docker.png';
+    img1.onload = function(){
+        main_container = document.getElementById('container');
+        img = document.getElementById('image-container');
+        img1.setAttribute('draggable', 'false');
+        img1.setAttribute('id', 'imaga');
+        img.appendChild(img1);
+        real_img = img1;
+        const proportion = parseFloat((real_img.offsetWidth / real_img.offsetHeight));
+
+        img.style.width = INITIAL_WIDTH + 'px';
+        img.style.height = (INITIAL_WIDTH / proportion).toFixed(3) + 'px';
+
+        real_img.style.width = '100%';
+
+
+        img_info = {height: img.offsetHeight, width: img.offsetWidth};
+        container_info = {height: main_container.offsetHeight, width: main_container.offsetWidth};
+
+        img.style.top = container_info.height / 2  - img_info.height / 2 + 'px';
+        img.style.left = container_info.width / 2  - img_info.width / 2 + 'px';
+
+
+
+        img.addEventListener('mouseover', listenToClick, false);
+        img.addEventListener('mouseout', removeClickListener, false);
+
+        function listenToClick(e) {
+            real_img.addEventListener('mousedown', startDrag, false);
+        }
+
+        function removeClickListener() {
+            window.removeEventListener('mousedown', startDrag, false);
+        }
+
+
+
+
+        function startDrag(e) {
+            initialTop = e.clientY;
+            initialLeft = e.clientX;
+            diffX = initialLeft - parseInt(img.style.left);
+            diffY = initialTop - parseInt(img.style.top);
+
+            window.addEventListener('mousemove', fuck = (e) => drag(e, diffX, diffY), false);
+            window.addEventListener('mouseup', stopDrag, false);
+        }
+
+
+        drag = (e, diffX, diffY) => {
+            img.style.top = e.clientY - diffY + 'px'
+            img.style.left = e.clientX - diffX + 'px'
+        };
+
+
+        stopDrag = (e) => {
+            window.removeEventListener('mouseup', stopDrag, false);
+            window.removeEventListener('mousemove', fuck, false);
+        };
+
+
+
+
+        // RESIZING
+
+        // Добавляем MouseDown лисенер на каждый угол
+        resizeButtons = document.getElementsByClassName('resize');
+        for (let i = 0; i < resizeButtons.length; i++) {
+            resizeButtons[i].addEventListener('mousedown', listenToResize, false);
+        }
+
+
+        function listenToResize(e) {
+            // Берем айди элемента, чтобы понять, за какой именно угол тянет клиент
+            element = e.target.id;
+
+            // Сохраняем точку, в которой клиент нажал на угол
+            initialX = e.clientX;
+            initialY = e.clientY;
+
+            // Сохраняем изначальные данные контейнера
+            container = img.getBoundingClientRect();
+            main_container_info = null;
+            if (element !== 'resize-bottom-right') {
+                main_container_info = main_container.getBoundingClientRect();
+            }
+
+            // Слушаем событие MouseMove и передаем функции все сохраненные ранее данные
+            window.addEventListener('mousemove', startResizing = (e) => resizing(e, element, container, initialX, initialY, main_container_info), false);
+
+            // Слушаем событие MouseUp, и как только оно случается, запускаем stopResizing
+            window.addEventListener('mouseup', stopResizing, false);
+        }
+
+        function resizing(e, element, container, initialX, initialY, main_container_info=null) {
+
+            // Исходя из типа кнопки запускаем нужную функцию
+            // Все функции ресайза практически одинаковые и отличаются совсем немного, поэтому,
+            // скорее всего, можно отрефакторить их и сделать одну функцию, но я решил для простоты
+            // чтения кода оставить для каждого угла свою функцию
+            switch (element) {
+                case 'resize-bottom-right':
+                    resizeBottomRight(e, container, initialX, initialY);
+                    break;
+                case 'resize-top-left':
+                    resizeTopLeft(e, container, initialX, initialY, main_container_info);
+                    break;
+                case 'resize-top-right':
+                    resizeTopRight(e, container, initialX, initialY, main_container_info);
+                    break;
+                case 'resize-bottom-left':
+                    resizeBottomLeft(e, container, initialX, initialY, main_container_info);
+                    break;
+            }
+        }
+
+        function stopResizing(e) {
+            // Снимаем слушатель на событие MouseMove и также на событие MouseUp (чтобы не запускать
+            // эту функцию когда не надо)
+            window.removeEventListener('mousemove', startResizing, false);
+            window.removeEventListener('mouseup', stopResizing, false);
+        }
+
+
+        function resizeBottomRight(e, container, initialX, initialY) {
+            // Находим разницу по оси Х и по оси Y с той точкой, в которой был нажат угол
+            diffX = e.clientX - initialX;
+            diffY = e.clientY - initialY;
+            current_container = img.getBoundingClientRect();
+
+            // Если ресайзим по оси Х пропорционально больше, чем по оси Y, то
+            // высчитываем высоту основываясь на ширине
+            if (diffX >= diffY * proportion) {
+                let new_width = container.width + diffX;
+                let new_height = new_width / proportion;
+
+                if (new_width > MINIMUM_WIDTH) {
+                    img.style.width = new_width + 'px';
+                    img.style.height = new_height + 'px';
+                }
+            }
+            // И наоборот: если по оси Y ресайзим пропорционально больше, то
+            // ширину высчитываем основываясь на высоте
+            else {
+                let new_height = container.height + diffY;
+                let new_width = proportion * new_height;
+
+
+                if (new_width > MINIMUM_WIDTH) {
+                    img.style.width = new_width + 'px';
+                    img.style.height = new_height + 'px';
+                }
+            }
+        }
+
+        function resizeTopLeft(e, container, initialX, initialY, main_container_info=null) {
+            // Тут та же логика, что и в функции resizeBottomRight за несколькими исключениями:
+            // разница по осям считается наоборот и тут мы должны не просто изменить размер блока,
+            // но еще и переносить его (чтобы казалось, что он закреплен в нижнем правом углу)
+            diffX = initialX - e.clientX;
+            diffY = initialY - e.clientY;
+
+            if (diffX >= diffY * proportion) {
+                let new_width = container.width + diffX;
+                let new_height = (new_width / proportion);
+
+                if (new_width > MINIMUM_WIDTH) {
+                    // Тут происходит перенос блока
+                    img.style.left = container.left - diffX - main_container_info.left + 'px';
+                    img.style.top = (container.top - (new_height - container.height) - main_container_info.top) + 'px';
+
+                    img.style.width = new_width + 'px';
+                    img.style.height = new_height + 'px';
+                }
+            }
+            else {
+                let new_height = container.height + diffY;
+                let new_width = (proportion * new_height);
+
+                if (new_width > MINIMUM_WIDTH) {
+                    // Тут происходит перенос блока
+                    img.style.top = container.top - diffY - main_container_info.top + 'px';
+                    img.style.left = (container.left - (new_width - container.width) - main_container_info.left) + 'px';
+
+                    img.style.width = new_width + 'px';
+                    img.style.height = new_height + 'px';
+                }
+
+            }
+
+        }
+
+        function resizeTopRight(e, container, initialX, initialY, main_container_info=null) {
+            diffX = e.clientX - initialX;
+            diffY = initialY - e.clientY;
+
+            if (diffX >= diffY * proportion) {
+                let new_width = container.width + diffX;
+                let new_height = (new_width / proportion);
+
+                if (new_width > MINIMUM_WIDTH) {
+                    img.style.top = (container.top - (new_height - container.height) - main_container_info.top) + 'px';
+
+                    img.style.width = new_width + 'px';
+                    img.style.height = new_height + 'px';
+                }
+            }
+            else {
+                let new_height = container.height + diffY;
+                let new_width = (proportion * new_height);
+
+                if (new_width > MINIMUM_WIDTH) {
+                    img.style.top = container.top - diffY - main_container_info.top + 'px';
+
+                    img.style.width = new_width + 'px';
+                    img.style.height = new_height + 'px';
+                }
+
+            }
+        }
+
+        function resizeBottomLeft(e, container, initialX, initialY, main_container_info=null) {
+            diffX = initialX - e.clientX;
+            diffY = e.clientY - initialY;
+
+            if (diffX >= diffY * proportion) {
+                let new_width = container.width + diffX;
+                let new_height = (new_width / proportion);
+
+                if (new_width > MINIMUM_WIDTH) {
+                    img.style.left = container.left - diffX - main_container_info.left + 'px';
+
+                    img.style.width = new_width + 'px';
+                    img.style.height = new_height + 'px';
+                }
+            }
+            else {
+                let new_height = container.height + diffY;
+                let new_width = (proportion * new_height);
+
+                if (new_width > MINIMUM_WIDTH) {
+                    img.style.left = (container.left - (new_width - container.width) - main_container_info.left) + 'px';
+
+                    img.style.width = new_width + 'px';
+                    img.style.height = new_height + 'px';
+                }
+
+            }
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  </script>
+</body>
+</html>

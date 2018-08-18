@@ -1,0 +1,43 @@
+
+#container {
+  position: relative;
+  width: 700px;
+  height: 500px;
+  margin: auto;
+  margin-top: calc(50vh - 250px);
+  border: 1px solid black;
+}
+
+#container #imaga, #container #image-container {
+  display: block;
+  position: absolute;
+  z-index: 10;
+}
+
+
+.resize {
+  display: block;
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background-color: rgb(100, 211, 176);
+  z-index: 100;
+}
+
+#resize-top-left {
+  top: -5px;
+  left: -5px;
+}
+#resize-top-right {
+  top: -5px;
+  right: -5px;
+}
+#resize-bottom-left {
+  bottom: -5px;
+  left: -5px;
+}
+#resize-bottom-right {
+  bottom: -5px;
+  right: -5px;
+}
